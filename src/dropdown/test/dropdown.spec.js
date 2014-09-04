@@ -23,8 +23,11 @@ describe('dropdown', function () {
 
   var templates = {
     'default': {
-      scope: {dropdown: [{text: 'Another action', href: '#foo'}, {text: 'Something else here', click: '$alert(\'working ngClick!\')'}, {divider: true}, {text: 'Separated link', href: '#separatedLink'}]},
+      scope: {dropdown: [{text: 'Another action', href: '#foo'}, {text: 'External link', href: '/auth/facebook', target: '_self'}, {text: 'Something else here', click: '$alert(\'working ngClick!\')'}, {divider: true}, {text: 'Separated link', href: '#separatedLink'}]},
       element: '<a bs-dropdown="dropdown">click me</a>'
+    },
+    'in-navbar': {
+      element: '<div class="collapse navbar-collapse"><ul class="nav navbar-nav"><li class="dropdown"><a bs-dropdown="dropdown">click me</a></li></ul>'
     },
     'markup-ngRepeat': {
       element: '<ul><li ng-repeat="i in [1, 2, 3]"><a bs-dropdown="dropdown">{{i}}</a></li></ul>'
@@ -85,8 +88,12 @@ describe('dropdown', function () {
       expect(sandboxEl.find('.dropdown-menu a:eq(0)').text()).toBe(scope.dropdown[0].text);
       expect(sandboxEl.find('.dropdown-menu a:eq(0)').attr('href')).toBe(scope.dropdown[0].href);
       expect(sandboxEl.find('.dropdown-menu a:eq(0)').attr('ng-click')).toBeUndefined();
-      expect(sandboxEl.find('.dropdown-menu a:eq(1)').attr('href')).toBeDefined();
-      expect(sandboxEl.find('.dropdown-menu a:eq(1)').attr('ng-click')).toBe('$eval(item.click);$hide()');
+      expect(sandboxEl.find('.dropdown-menu a:eq(1)').text()).toBe(scope.dropdown[1].text);
+      expect(sandboxEl.find('.dropdown-menu a:eq(1)').attr('href')).toBe(scope.dropdown[1].href);
+      expect(sandboxEl.find('.dropdown-menu a:eq(1)').attr('target')).toBe(scope.dropdown[1].target);
+      expect(sandboxEl.find('.dropdown-menu a:eq(1)').attr('ng-click')).toBeUndefined();
+      expect(sandboxEl.find('.dropdown-menu a:eq(2)').attr('href')).toBeDefined();
+      expect(sandboxEl.find('.dropdown-menu a:eq(2)').attr('ng-click')).toBe('$eval(item.click);$hide()');
     });
 
     it('should support ngRepeat markup', function() {
@@ -96,6 +103,16 @@ describe('dropdown', function () {
       expect(sandboxEl.find('.dropdown-menu a:eq(0)').text()).toBe(scope.dropdown[0].text);
     });
 
+  });
+
+  describe('in navbar', function() {
+    it('should add class .open to the parent <li> when dropdown is open', function() {
+      var elm = compileDirective('in-navbar');
+      angular.element(elm.find('a')).triggerHandler('click');
+      expect(sandboxEl.find('.dropdown').hasClass('open')).toBeTruthy();
+      angular.element(elm.find('a')).triggerHandler('click');
+      expect(sandboxEl.find('.dropdown').hasClass('open')).toBeFalsy();
+    });
   });
 
 
@@ -176,11 +193,11 @@ describe('dropdown', function () {
         $templateCache.put('custom', '<div class="dropdown"><div class="dropdown-inner"><ul><li ng-repeat="item in dropdown">{{$index}}</li></ul></div></div>');
         var elm = compileDirective('options-template');
         angular.element(elm[0]).triggerHandler('click');
-        expect(sandboxEl.find('.dropdown-inner').text()).toBe('0123');
+        expect(sandboxEl.find('.dropdown-inner').text()).toBe('01234');
         // Consecutive toggles
         angular.element(elm[0]).triggerHandler('click');
         angular.element(elm[0]).triggerHandler('click');
-        expect(sandboxEl.find('.dropdown-inner').text()).toBe('0123');
+        expect(sandboxEl.find('.dropdown-inner').text()).toBe('01234');
       });
 
       it('should support template with ngClick', function() {

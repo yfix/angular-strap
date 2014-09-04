@@ -69,6 +69,10 @@ describe('datepicker', function() {
       scope: {selectedDate: new Date(1986, 1, 22)},
       element: '<input type="text" ng-model="selectedDate" data-date-format="yyyy-MM-dd" bs-datepicker>'
     },
+    'options-dateFormat-alt': {
+      scope: {selectedDate: new Date(1986, 1, 22)},
+      element: '<input type="text" ng-model="selectedDate" data-date-format="EEEE MMMM d, yyyy" bs-datepicker>'
+    },
     'options-strictFormat': {
       scope: {selectedDate: new Date(1986, 1, 4)},
       element: '<input type="text" ng-model="selectedDate" data-date-format="yyyy-M-d" data-strict-format="1" bs-datepicker>'
@@ -113,12 +117,28 @@ describe('datepicker', function() {
       scope: {selectedDate: new Date(2014, 6, 15), startWeek: 6},
       element: '<input type="text" ng-model="selectedDate" data-start-week="{{startWeek}}" bs-datepicker>'
     },
+    'options-startDate': {
+      scope: {startDate: '02/03/04'},
+      element: '<input type="text" ng-model="selectedDate" data-start-date="{{startDate}}" bs-datepicker>'
+    },
     'options-autoclose': {
       element: '<input type="text" ng-model="selectedDate" data-autoclose="1" bs-datepicker>'
     },
     'options-useNative': {
       element: '<input type="text" ng-model="selectedDate" data-use-native="1" bs-datepicker>'
-    }
+    },
+    'options-modelDateFormat': {
+      scope: {selectedDate: '2014-12-01' },
+      element: '<input type="text" ng-model="selectedDate" data-date-format="dd/MM/yyyy" data-model-date-format="yyyy-MM-dd" data-date-type="string" bs-datepicker>'
+    },
+    'options-daysOfWeekDisabled': {
+      scope: {selectedDate: new Date(2014, 6, 27)},
+      element: '<input type="text" ng-model="selectedDate" data-days-of-week-disabled="{{daysOfWeekDisabled}}" bs-datepicker>'
+    },
+    'options-daysOfWeekDisabled-bis': {
+      scope: {selectedDate: new Date(2014, 6, 27), daysOfWeekDisabled: '0246'},
+      element: '<input type="text" ng-model="selectedDate" data-days-of-week-disabled="{{daysOfWeekDisabled}}" bs-datepicker>'
+    },
   };
 
   function compileDirective(template, locals) {
@@ -466,6 +486,14 @@ describe('datepicker', function() {
         expect(elm.val()).toBe('1986-02-24');
       });
 
+      it('should support an alternative custom dateFormat', function() {
+        var elm = compileDirective('options-dateFormat-alt');
+        expect(elm.val()).toBe('Saturday February 22, 1986');
+        angular.element(elm[0]).triggerHandler('focus');
+        angular.element(sandboxEl.find('.dropdown-menu tbody .btn:contains(24)')).triggerHandler('click');
+        expect(elm.val()).toBe('Monday February 24, 1986');
+      });
+
     });
 
     describe('strictFormat', function () {
@@ -517,6 +545,17 @@ describe('datepicker', function() {
         expect(sandboxEl.find('.dropdown-menu tbody button:contains(20)').is(':disabled')).toBeFalsy();
       });
 
+      it('should reset minDate to -Infinity when set empty string', function() {
+        var elm = compileDirective('options-minDate');
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(19)').is(':disabled')).toBeTruthy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(20)').is(':disabled')).toBeFalsy();
+        scope.minDate = '';
+        scope.$digest();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(19)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(20)').is(':disabled')).toBeFalsy();
+      });
+
     });
 
     describe('maxDate', function() {
@@ -556,6 +595,17 @@ describe('datepicker', function() {
         expect(sandboxEl.find('.dropdown-menu tbody button:contains(25)').is(':disabled')).toBeTruthy();
       });
 
+      it('should reset maxDate to +Infinity when set empty string', function() {
+        var elm = compileDirective('options-maxDate');
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(24)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(25)').is(':disabled')).toBeTruthy();
+        scope.maxDate = '';
+        scope.$digest();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(24)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(25)').is(':disabled')).toBeFalsy();
+      });
+
     });
 
     describe('startWeek', function() {
@@ -576,6 +626,16 @@ describe('datepicker', function() {
 
     });
 
+    describe('startDate', function() {
+
+      it('should support a dynamic startDate', function() {
+        var elm = compileDirective('options-startDate');
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu thead button:eq(1)').text()).toBe(dateFilter(new Date(scope.startDate), 'MMMM yyyy'));
+      });
+
+    });
+
     describe('useNative', function() {
 
       it('should correctly compile template according to useNative', function() {
@@ -587,5 +647,56 @@ describe('datepicker', function() {
     });
 
   });
+
+  describe('dateModelFormat', function() {
+
+    it('should support a custom modelDateFormat', function() {
+      var elm = compileDirective('options-modelDateFormat');
+
+      // Should have the predefined value
+      expect(elm.val()).toBe('01/12/2014');
+
+      // Should correctly set the model value if set via the datepicker
+      angular.element(elm[0]).triggerHandler('focus');
+      angular.element(sandboxEl.find('.dropdown-menu tbody .btn:contains(24)')).triggerHandler('click');
+      expect(elm.val()).toBe('24/12/2014');
+      expect(scope.selectedDate).toBe('2014-12-24');
+
+      // Should correctly set the model if the date is manually typed into the input
+      elm.val('20/11/2014');
+      angular.element(elm[0]).triggerHandler('change');
+      scope.$digest();
+      expect(scope.selectedDate).toBe('2014-11-20');
+    });
+
+  });
+
+  describe('daysOfWeekDisabled', function() {
+
+      it('should enable all days of the week by default', function() {
+        var elm = compileDirective('options-daysOfWeekDisabled');
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(20)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(21)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(22)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(23)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(24)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(25)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(26)').is(':disabled')).toBeFalsy();
+      });
+
+      it('should allow disabling some days of the week', function() {
+        var elm = compileDirective('options-daysOfWeekDisabled-bis');
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(20)').is(':disabled')).toBeTruthy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(21)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(22)').is(':disabled')).toBeTruthy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(23)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(24)').is(':disabled')).toBeTruthy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(25)').is(':disabled')).toBeFalsy();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(26)').is(':disabled')).toBeTruthy();
+      });
+
+    });
 
 });
