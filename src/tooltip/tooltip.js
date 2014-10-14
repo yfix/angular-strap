@@ -39,7 +39,8 @@ angular.module('mgcrea.ngStrap.tooltip', ['mgcrea.ngStrap.helpers.dimensions'])
         $tooltip.$promise = fetchTemplate(options.template);
         var scope = $tooltip.$scope = options.scope && options.scope.$new() || $rootScope.$new();
         if(options.delay && angular.isString(options.delay)) {
-          options.delay = parseFloat(options.delay);
+          var split = options.delay.split(',').map(parseFloat);
+          options.delay = split.length > 1 ? {show: split[0], hide: split[1]} : split[0];
         }
 
         // Support scope as string options
@@ -440,12 +441,10 @@ angular.module('mgcrea.ngStrap.tooltip', ['mgcrea.ngStrap.helpers.dimensions'])
         });
 
         // Observe scope attributes for change
-        angular.forEach(['title'], function(key) {
-          attr.$observe(key, function(newValue, oldValue) {
-            scope[key] = $sce.trustAsHtml(newValue);
-            angular.isDefined(oldValue) && $$rAF(function() {
-              tooltip && tooltip.$applyPlacement();
-            });
+        attr.$observe('title', function(newValue, oldValue) {
+          scope.title = $sce.trustAsHtml(newValue);
+          angular.isDefined(oldValue) && $$rAF(function() {
+            tooltip && tooltip.$applyPlacement();
           });
         });
 
@@ -464,7 +463,7 @@ angular.module('mgcrea.ngStrap.tooltip', ['mgcrea.ngStrap.helpers.dimensions'])
         // Visibility binding support
         attr.bsShow && scope.$watch(attr.bsShow, function(newValue, oldValue) {
           if(!tooltip || !angular.isDefined(newValue)) return;
-          if(angular.isString(newValue)) newValue = !!newValue.match(',?(tooltip),?');
+          if(angular.isString(newValue)) newValue = !!newValue.match(/true|,?(tooltip),?/i);
           newValue === true ? tooltip.show() : tooltip.hide();
         });
 

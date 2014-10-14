@@ -139,6 +139,14 @@ describe('datepicker', function() {
       scope: {selectedDate: new Date(2014, 6, 27), daysOfWeekDisabled: '0246'},
       element: '<input type="text" ng-model="selectedDate" data-days-of-week-disabled="{{daysOfWeekDisabled}}" bs-datepicker>'
     },
+    'bsShow-attr': {
+      scope: {selectedDate: new Date()},
+      element: '<input type="text" ng-model="selectedDate" bs-datepicker bs-show="true">'
+    },
+    'bsShow-binding': {
+      scope: {isVisible: false, selectedDate: new Date()},
+      element: '<input type="text" ng-model="selectedDate" bs-datepicker bs-show="isVisible">'
+    }
   };
 
   function compileDirective(template, locals) {
@@ -321,6 +329,56 @@ describe('datepicker', function() {
     //   angular.element(elm[0]).triggerHandler('focus');
     // });
 
+  });
+
+  describe('bsShow attribute', function() {
+    it('should support setting to a boolean value', function() {
+      var elm = compileDirective('bsShow-attr');
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(1);
+    });
+
+    it('should support binding', function() {
+      var elm = compileDirective('bsShow-binding');
+      expect(scope.isVisible).toBeFalsy();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(0);
+      scope.isVisible = true;
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(1);
+      scope.isVisible = false;
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(0);
+    });
+
+    it('should support initial value false', function() {
+      var elm = compileDirective('bsShow-binding');
+      expect(scope.isVisible).toBeFalsy();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(0);
+    });
+
+    it('should support initial value true', function() {
+      var elm = compileDirective('bsShow-binding', {isVisible: true});
+      expect(scope.isVisible).toBeTruthy();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(1);
+    });
+
+    it('should support undefined value', function() {
+      var elm = compileDirective('bsShow-binding', {isVisible: undefined});
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(0);
+    });
+
+    it('should support string value', function() {
+      var elm = compileDirective('bsShow-binding', {isVisible: 'a string value'});
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(0);
+      scope.isVisible = 'TRUE';
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(1);
+      scope.isVisible = 'dropdown';
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(0);
+      scope.isVisible = 'datepicker,tooltip';
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.datepicker').length).toBe(1);
+    });
   });
 
   // describe('using service', function() {
@@ -632,6 +690,12 @@ describe('datepicker', function() {
         var elm = compileDirective('options-startDate');
         angular.element(elm[0]).triggerHandler('focus');
         expect(sandboxEl.find('.dropdown-menu thead button:eq(1)').text()).toBe(dateFilter(new Date(scope.startDate), 'MMMM yyyy'));
+      });
+
+      it('should support a dynamic startDate from date object', function() {
+        var elm = compileDirective('options-startDate', {startDate: new Date(2014, 2, 2)});
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu thead button:eq(1)').text()).toBe(dateFilter(scope.startDate, 'MMMM yyyy'));
       });
 
     });

@@ -32,9 +32,6 @@ describe('timepicker', function() {
       scope: {selectedTime: new Date()},
       element: '<input type="text" ng-model="selectedTime" bs-timepicker>'
     },
-    'value-undefined': {
-      element: '<input type="text" ng-model="selectedUndefined" bs-timepicker>'
-    },
     'value-past': {
       scope: {selectedTime: new Date(1970, 0, 1, 10, 30)},
       element: '<input type="text" ng-model="selectedTime" bs-timepicker>'
@@ -102,12 +99,20 @@ describe('timepicker', function() {
     'options-modelTimeFormat': {
       scope: {selectedTime: '12:20:00'},
       element: '<input type="text" ng-model="selectedTime" data-time-type="string" data-model-time-format="HH:mm:ss" data-time-format="HH:mm" bs-timepicker>'
+    },
+    'bsShow-attr': {
+      scope: {selectedTime: new Date()},
+      element: '<input type="text" ng-model="selectedTime" bs-timepicker bs-show="true">'
+    },
+    'bsShow-binding': {
+      scope: {isVisible: false, selectedTime: new Date()},
+      element: '<input type="text" ng-model="selectedTime" bs-timepicker bs-show="isVisible">'
     }
   };
 
   function compileDirective(template, locals) {
     template = templates[template];
-    angular.extend(scope, template.scope || templates['default'].scope, locals);
+    angular.extend(scope, angular.copy(template.scope || templates['default'].scope), locals);
     var element = $(template.element).appendTo(sandboxEl);
     element = $compile(element)(scope);
     scope.$digest();
@@ -178,14 +183,36 @@ describe('timepicker', function() {
       expect(scope.selectedTime.getHours()).toBe(12);
     });
 
-    it('should correctly support undefined values', function() {
-      var elm = compileDirective('value-undefined');
-      expect(elm.val()).toBe('');
+
+    it('should correctly support null values', function() {
+      var elm = compileDirective('default', {selectedTime: null});
       angular.element(elm[0]).triggerHandler('focus');
+      expect(elm.val()).toBe('');
+      expect(sandboxEl.find('.dropdown-menu tbody tr').length).toBe($timepicker.defaults.length);
+      expect(sandboxEl.find('.dropdown-menu tbody .btn').length).toBe($timepicker.defaults.length * 4);
+      elm.val('0');
+      angular.element(elm[0]).triggerHandler('change');
+    });
+
+    it('should correctly support undefined values', function() {
+      var elm = compileDirective('default', {selectedTime: undefined});
+      angular.element(elm[0]).triggerHandler('focus');
+      expect(elm.val()).toBe('');
       expect(sandboxEl.find('.dropdown-menu tbody tr').length).toBe($timepicker.defaults.length);
       expect(sandboxEl.find('.dropdown-menu tbody .btn').length).toBe($timepicker.defaults.length * 4);
       angular.element(sandboxEl.find('.dropdown-menu tbody button:eq(0)')[0]).triggerHandler('click');
-      expect(angular.isDate(scope.selectedUndefined)).toBeTruthy();
+      expect(angular.isDate(scope.selectedTime)).toBeTruthy();
+    });
+
+    it('should ignore switch meridians with undefined time values', function() {
+      var elm = compileDirective('default', {selectedTime: undefined});
+      expect(elm.val()).toBe('');
+      angular.element(elm[0]).triggerHandler('focus');
+      var amButton = angular.element(sandboxEl.find('.dropdown-menu tbody td:eq(4) button:eq(0)')[0]);
+      spyOn(scope.$$childHead, '$switchMeridian');
+      amButton.triggerHandler('click');
+      // expect not to throw exception
+      expect(scope.$$childHead.$switchMeridian).toHaveBeenCalled();
     });
 
     it('should correctly support invalid values', function() {
@@ -225,6 +252,56 @@ describe('timepicker', function() {
     //   angular.element(elm[0]).triggerHandler('focus');
     // });
 
+  });
+
+  describe('bsShow attribute', function() {
+    it('should support setting to a boolean value', function() {
+      var elm = compileDirective('bsShow-attr');
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(1);
+    });
+
+    it('should support binding', function() {
+      var elm = compileDirective('bsShow-binding');
+      expect(scope.isVisible).toBeFalsy();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(0);
+      scope.isVisible = true;
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(1);
+      scope.isVisible = false;
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(0);
+    });
+
+    it('should support initial value false', function() {
+      var elm = compileDirective('bsShow-binding');
+      expect(scope.isVisible).toBeFalsy();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(0);
+    });
+
+    it('should support initial value true', function() {
+      var elm = compileDirective('bsShow-binding', {isVisible: true});
+      expect(scope.isVisible).toBeTruthy();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(1);
+    });
+
+    it('should support undefined value', function() {
+      var elm = compileDirective('bsShow-binding', {isVisible: undefined});
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(0);
+    });
+
+    it('should support string value', function() {
+      var elm = compileDirective('bsShow-binding', {isVisible: 'a string value'});
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(0);
+      scope.isVisible = 'TRUE';
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(1);
+      scope.isVisible = 'dropdown';
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(0);
+      scope.isVisible = 'timepicker,tooltip';
+      scope.$digest();
+      expect(sandboxEl.children('.dropdown-menu.timepicker').length).toBe(1);
+    });
   });
 
   // describe('using service', function() {
@@ -440,6 +517,27 @@ describe('timepicker', function() {
         // expect(sandboxEl.find('.dropdown-menu tbody button:contains(' + (todayHour - 1) + ')').is(':disabled')).toBeTruthy();
       });
 
+      it('should consider empty minTime as no minTime defined', function() {
+        var elm = compileDirective('options-minTime');
+        angular.element(elm[0]).triggerHandler('focus');
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(8)').is(':disabled')).toBeTruthy();
+        scope.minTime = '';
+        scope.$digest();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(8)').is(':disabled')).toBeFalsy();
+      });
+
+      it('should validate using minTime', function() {
+        var elm = compileDirective('options-minTime');
+
+        elm.val('10:00 AM'); // valid
+        angular.element(elm[0]).triggerHandler('change');
+        expect(elm.hasClass('ng-valid-min')).toBeTruthy();
+
+        elm.val('8:00 AM'); // invalid
+        angular.element(elm[0]).triggerHandler('change');
+        expect(elm.hasClass('ng-invalid-min')).toBeTruthy();
+      });
+
     });
 
     describe('maxTime', function() {
@@ -459,6 +557,29 @@ describe('timepicker', function() {
         var todayHour = today.getHours();
         // @TODO fixme
         // expect(sandboxEl.find('.dropdown-menu tbody button:contains(' + (todayHour + 1) + ')').is(':disabled')).toBeTruthy();
+      });
+
+      it('should consider empty maxTime as no maxTime defined', function() {
+        var elm = compileDirective('options-maxTime');
+        angular.element(elm[0]).triggerHandler('focus');
+        scope.maxTime = '10:30 AM';
+        scope.$digest();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(11)').is(':disabled')).toBeTruthy();
+        scope.maxTime = '';
+        scope.$digest();
+        expect(sandboxEl.find('.dropdown-menu tbody button:contains(11)').is(':disabled')).toBeFalsy();
+      });
+
+      it('should validate using maxTime', function() {
+        var elm = compileDirective('options-maxTime');
+
+        elm.val('8:00 PM'); // valid
+        angular.element(elm[0]).triggerHandler('change');
+        expect(elm.hasClass('ng-valid-max')).toBeTruthy();
+
+        elm.val('11:00 PM'); // invalid
+        angular.element(elm[0]).triggerHandler('change');
+        expect(elm.hasClass('ng-invalid-max')).toBeTruthy();
       });
 
     });

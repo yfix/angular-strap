@@ -1,6 +1,6 @@
 'use strict';
 
-describe('tab', function () {
+describe('collapse', function () {
 
   var $compile, $templateCache, $animate, scope, sandboxEl;
 
@@ -48,12 +48,15 @@ describe('tab', function () {
     },
     'options-disallowToggle': {
       element: '<div data-disallow-toggle="true" class="panel-group" bs-collapse><div class="panel panel-default"><div class="panel-heading"><h4 class="panel-title"><a bs-collapse-toggle>title-1</a></h4></div><div class="panel-collapse" bs-collapse-target><div class="panel-body">content-1</div></div></div><div class="panel panel-default"><div class="panel-heading"><h4 class="panel-title"><a bs-collapse-toggle>title-2</a></h4></div><div class="panel-collapse" bs-collapse-target><div class="panel-body">content-2</div></div></div></div>'
+    },
+    'options-startCollapsed': {
+      element: '<div data-start-collapsed="true" class="panel-group" bs-collapse><div class="panel panel-default"><div class="panel-heading"><h4 class="panel-title"><a bs-collapse-toggle>title-1</a></h4></div><div class="panel-collapse" bs-collapse-target><div class="panel-body">content-1</div></div></div><div class="panel panel-default"><div class="panel-heading"><h4 class="panel-title"><a bs-collapse-toggle>title-2</a></h4></div><div class="panel-collapse" bs-collapse-target><div class="panel-body">content-2</div></div></div></div>'
     }
   };
 
   function compileDirective(template, locals) {
     template = templates[template];
-    angular.extend(scope, template.scope || templates['default'].scope, locals);
+    angular.extend(scope, angular.copy(template.scope || templates['default'].scope), locals);
     var element = $(template.element).appendTo(sandboxEl);
     element = $compile(element)(scope);
     scope.$digest();
@@ -92,6 +95,7 @@ describe('tab', function () {
 
     it('should correctly apply model changes to the view', function() {
       var elm = compileDirective('binding-ngModel');
+      expect(scope.panel.active).toBe(1);
       expect(sandboxEl.find('[bs-collapse-target].in').parent('.panel-default').index()).toBe(scope.panel.active);
       scope.panel.active = 0;
       scope.$digest();
@@ -100,7 +104,13 @@ describe('tab', function () {
 
     it('should correctly apply view changes to the model', function() {
       var elm = compileDirective('binding-ngModel');
+      expect(scope.panel.active).toBe(1);
       sandboxEl.find('[bs-collapse-toggle]:eq(0)').triggerHandler('click');
+      expect(scope.panel.active).toBe(0);
+    });
+
+    it('should correctly apply model when initial binding value equals default view value', function() {
+      var elm = compileDirective('binding-ngModel', { panel: { active: 0 } });
       expect(scope.panel.active).toBe(0);
     });
 
@@ -142,6 +152,19 @@ describe('tab', function () {
         expect(sandboxEl.find('[bs-collapse-target]:eq(0)').hasClass('in')).toBeTruthy();
         sandboxEl.find('[bs-collapse-toggle]:eq(0)').triggerHandler('click');
         expect(sandboxEl.find('[bs-collapse-target]:eq(0)').hasClass('in')).toBeTruthy();
+      });
+
+    });
+
+    describe('startCollapsed', function () {
+
+      it('should support startCollapsed flag', function() {
+        var elm = compileDirective('options-startCollapsed');
+        expect(sandboxEl.find('[bs-collapse-target]').hasClass('in')).toBeFalsy();
+        sandboxEl.find('[bs-collapse-toggle]:eq(0)').triggerHandler('click');
+        expect(sandboxEl.find('[bs-collapse-target]:eq(0)').hasClass('in')).toBeTruthy();
+        sandboxEl.find('[bs-collapse-toggle]:eq(0)').triggerHandler('click');
+        expect(sandboxEl.find('[bs-collapse-target]:eq(0)').hasClass('in')).toBeFalsy();
       });
 
     });
